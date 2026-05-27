@@ -1,0 +1,235 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Note: SQLite does not support native enums.
+// Role, status, and kind fields are stored as String and validated at the app layer via Zod.
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  // role: "Student" | "Instructor"
+  role         String
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+
+  // Relations
+  courses           Course[]           @relation("InstructorCourses")
+  enrollments       Enrollment[]
+  submissions       Submission[]
+  grades            Grade[]            @relation("InstructorGrades")
+  comments          Comment[]
+  notifications     Notification[]
+  lessonProgress    LessonProgress[]
+  announcements     Announcement[]
+  materials         LearningMaterial[]
+  materialFavorites MaterialFavorite[]
+}
+
+model Course {
+  id           String   @id @default(cuid())
+  title        String
+  description  String
+  instructorId String
+  // status: "Draft" | "Published" | "Archived"
+  status       String   @default("Draft")
+  // ECTS credits (typically 3-8 in Ukrainian universities)
+  creditsEcts  Int      @default(5)
+  // Term/semester of teaching, e.g. "2026-Spring"
+  semester     String   @default("2026-Spring")
+  // finalControl: "Pass" (залік) | "GradedPass" (диференційований залік) | "Exam" (екзамен)
+  finalControl String   @default("Exam")
+  // External URL to the official syllabus document
+  syllabusUrl  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  instructor    User           @relation("InstructorCourses", fields: [instructorId], references: [id])
+  sections      Section[]
+  enrollments   Enrollment[]
+  announcements Announcement[]
+}
+
+model Enrollment {
+  id              String   @id @default(cuid())
+  userId          String
+  courseId        String
+  // status: "Pending" | "Approved"
+  status          String   @default("Pending")
+  hiddenByStudent Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+}
+
+model Section {
+  id        String   @id @default(cuid())
+  courseId  String
+  title     String
+  order     Int
+  createdAt DateTime @default(now())
+
+  // Relations
+  course      Course       @relation(fields: [courseId], references: [id])
+  lessons     Lesson[]
+  assignments Assignment[]
+}
+
+model Lesson {
+  id              String    @id @default(cuid())
+  sectionId       String
+  title           String
+  contentMarkdown String
+  releaseAt       DateTime?
+  order           Int
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  section        Section          @relation(fields: [sectionId], references: [id])
+  lessonProgress LessonProgress[]
+}
+
+model LessonProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  lessonId    String
+  completedAt DateTime @default(now())
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id])
+  lesson Lesson @relation(fields: [lessonId], references: [id])
+
+  @@unique([userId, lessonId])
+}
+
+model Assignment {
+  id                  String    @id @default(cuid())
+  sectionId           String
+  title               String
+  descriptionMarkdown String
+  dueAt               DateTime
+  releaseAt           DateTime?
+  maxScore            Int       @default(100)
+  createdAt           DateTime  @default(now())
+
+  // Relations
+  section     Section      @relation(fields: [sectionId], references: [id])
+  submissions Submission[]
+}
+
+model Submission {
+  id           String   @id @default(cuid())
+  assignmentId String
+  userId       String
+  textBody     String?
+  fileUrl      String?
+  submittedAt  DateTime @default(now())
+
+  // Relations
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
+  grade      Grade?
+
+  @@unique([assignmentId, userId])
+}
+
+model Grade {
+  id           String   @id @default(cuid())
+  submissionId String   @unique
+  score        Float
+  instructorId String
+  gradedAt     DateTime @default(now())
+
+  // Relations
+  submission Submission @relation(fields: [submissionId], references: [id])
+  instructor User       @relation("InstructorGrades", fields: [instructorId], references: [id])
+}
+
+// Comment.parentType is "Lesson" or "Grade"; parentId references the respective table.
+// We store this as a polymorphic reference (string IDs) — Prisma does not model
+// polymorphic FK natively, so we do the JOIN manually in routes.
+model Comment {
+  id              String    @id @default(cuid())
+  authorId        String
+  // parentType: "Lesson" | "Grade"
+  parentType      String
+  parentId        String
+  parentCommentId String?
+  body            String
+  createdAt       DateTime  @default(now())
+  deletedAt       DateTime?
+
+  // Relations
+  author        User      @relation(fields: [authorId], references: [id])
+  parentComment Comment?  @relation("CommentReplies", fields: [parentCommentId], references: [id])
+  replies       Comment[] @relation("CommentReplies")
+}
+
+model Announcement {
+  id           String   @id @default(cuid())
+  courseId     String
+  instructorId String
+  title        String
+  body         String
+  createdAt    DateTime @default(now())
+
+  // Relations
+  course     Course @relation(fields: [courseId], references: [id])
+  instructor User   @relation(fields: [instructorId], references: [id])
+}
+
+model LearningMaterial {
+  id          String   @id @default(cuid())
+  title       String
+  // kind: "Video" | "Link" | "File"
+  kind        String
+  url         String?
+  fileUrl     String?
+  description String
+  creatorId   String
+  createdAt   DateTime @default(now())
+
+  // Relations
+  creator   User               @relation(fields: [creatorId], references: [id])
+  favorites MaterialFavorite[]
+}
+
+model MaterialFavorite {
+  id         String   @id @default(cuid())
+  userId     String
+  materialId String
+  createdAt  DateTime @default(now())
+
+  // Relations
+  user     User             @relation(fields: [userId], references: [id])
+  material LearningMaterial @relation(fields: [materialId], references: [id])
+
+  @@unique([userId, materialId])
+}
+
+model Notification {
+  id          String    @id @default(cuid())
+  userId      String
+  kind        String
+  payloadJson String
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+}

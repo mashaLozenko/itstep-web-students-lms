@@ -1,0 +1,26 @@
+{
+  "name": "students-course",
+  "private": true,
+  "version": "1.0.0",
+  "description": "LMS course catalog — reference implementation (server + client) for university course assignment",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
+    "dev:server": "npm run dev -w server",
+    "dev:client": "npm run dev -w client",
+    "seed": "npm run seed -w server",
+    "reset": "npm run db:reset -w server",
+    "db:reset": "npm run db:reset -w server",
+    "build": "npm run build -w client",
+    "install:all": "npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.18"
+  }
+}

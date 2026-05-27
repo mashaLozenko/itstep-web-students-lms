@@ -1,0 +1,19 @@
+node_modules
+.DS_Store
+.env
+.env.local
+
+# server
+server/uploads
+server/prisma/dev.db
+server/prisma/dev.db-journal
+server/prisma/*.db
+server/prisma/*.db-journal
+
+# client
+client/dist
+client/.vite
+
+# editor
+.vscode
+.idea

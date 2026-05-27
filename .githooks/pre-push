@@ -1,0 +1,32 @@
+#!/bin/sh
+# Pre-push hook — забороняє пушити гілку `reference` на будь-який віддалений репозиторій.
+# `reference` — це повна референс-реалізація для викладача; студентам віддається лише `main`.
+#
+# Активувати один раз після клонування:
+#   git config core.hooksPath .githooks
+#
+# Якщо потрібно тимчасово обійти (НЕ РОБИТИ для роздачі студентам):
+#   git push --no-verify
+
+protected_branch='reference'
+remote="$1"
+url="$2"
+
+while read local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/${protected_branch})
+      echo ""
+      echo "  \033[31m✘ Заборонено пушити '${protected_branch}' на віддалений '${remote}' (${url}).\033[0m"
+      echo ""
+      echo "  Гілка '${protected_branch}' — повна референс-реалізація для викладача."
+      echo "  Студентам віддається тільки 'main' (заглушки клієнта)."
+      echo ""
+      echo "  Якщо реально потрібно — використайте git push --no-verify, але обов'язково перевірте,"
+      echo "  що віддалений репозиторій не публічний / не student-facing."
+      echo ""
+      exit 1
+      ;;
+  esac
+done
+
+exit 0
