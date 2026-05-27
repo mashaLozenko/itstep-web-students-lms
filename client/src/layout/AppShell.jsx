@@ -36,7 +36,6 @@ import {
   People,
 } from '@mui/icons-material'
 import { useAuth } from '../auth/useAuth.js'
-import { useNotificationsSocket } from '../ws/useNotificationsSocket.js'
 import { NotificationBell } from './NotificationBell.jsx'
 
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || 'http://localhost:4000'
@@ -68,7 +67,7 @@ const instructorNavItems = [
 ]
 
 export function AppShell() {
-  const { user, token, logout } = useAuth()
+  const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const theme = useTheme()
@@ -76,9 +75,6 @@ export function AppShell() {
 
   const [mobileOpen, setMobileOpen] = useState(false)
   const [anchorEl, setAnchorEl] = useState(null)
-
-  // Open WebSocket for real-time notifications
-  useNotificationsSocket(token)
 
   const navItems = user?.role === 'Instructor' ? instructorNavItems : studentNavItems
 

@@ -1,0 +1,127 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1779863227083,
+  "projectRoot": "/Users/xanf/projects/students-course",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": ">=18.18",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "npm",
+    "runtime": "Node.js 18.18"
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "concurrently -n server,client -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
+      "dev:server": "npm run dev -w server",
+      "dev:client": "npm run dev -w client",
+      "seed": "npm run seed -w server",
+      "reset": "npm run db:reset -w server",
+      "db:reset": "npm run db:reset -w server",
+      "build": "npm run build -w client",
+      "install:all": "npm install"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": true,
+    "workspaces": [
+      "server",
+      "client"
+    ],
+    "mainDirectories": [],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "client": {
+      "path": "client",
+      "purpose": null,
+      "fileCount": 4,
+      "lastAccessed": 1779863227067,
+      "keyFiles": [
+        "index.html",
+        "package.json",
+        "vite.config.js"
+      ]
+    },
+    "server": {
+      "path": "server",
+      "purpose": null,
+      "fileCount": 4,
+      "lastAccessed": 1779863227069,
+      "keyFiles": [
+        "package.json"
+      ]
+    },
+    "client/dist": {
+      "path": "client/dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 1,
+      "lastAccessed": 1779863227069,
+      "keyFiles": [
+        "index.html"
+      ]
+    },
+    "client/node_modules": {
+      "path": "client/node_modules",
+      "purpose": "Dependencies",
+      "fileCount": 0,
+      "lastAccessed": 1779863227069,
+      "keyFiles": []
+    },
+    "client/src": {
+      "path": "client/src",
+      "purpose": "Source code",
+      "fileCount": 4,
+      "lastAccessed": 1779863227070,
+      "keyFiles": [
+        "App.jsx",
+        "index.css",
+        "main.jsx"
+      ]
+    },
+    "server/src": {
+      "path": "server/src",
+      "purpose": "Source code",
+      "fileCount": 3,
+      "lastAccessed": 1779863227070,
+      "keyFiles": [
+        "app.js",
+        "config.js",
+        "server.js"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "client/src/layout/AppShell.jsx",
+      "accessCount": 9,
+      "lastAccessed": 1779863674378,
+      "type": "file"
+    },
+    {
+      "path": "client/src/layout/NotificationBell.jsx",
+      "accessCount": 1,
+      "lastAccessed": 1779863648875,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}
