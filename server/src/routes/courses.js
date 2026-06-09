@@ -224,6 +224,106 @@ export default async function coursesRoutes(fastify) {
     return serializeCourse(course);
   });
 
+  // POST /api/v1/courses/:id/duplicate
+  fastify.post('/:id/duplicate', {
+    preHandler: [fastify.requireRole('Instructor')],
+    schema: {
+      summary: 'Дублювати курс',
+      description: 'Створює копію курсу: новий запис зі статусом Чернетка та власником поточного викладача. Копіює структуру (розділи, уроки, завдання) разом із вмістом. НЕ копіює: записи студентів, здані роботи, оцінки, коментарі, оголошення, прогрес уроків. Дати публікації та дедлайнів скидаються (releaseAt = null, dueAt у завданнях — поточна дата + 14 днів). Лише власник-викладач може дублювати курс.',
+      tags: ['Courses'],
+      security: [{ bearerAuth: [] }],
+      params: IdParam,
+      response: { 201: CourseOut, 403: ErrorResponse, 404: ErrorResponse },
+    },
+  }, async (request, reply) => {
+    const source = await fastify.prisma.course.findUnique({
+      where: { id: request.params.id },
+      include: {
+        sections: {
+          orderBy: { order: 'asc' },
+          include: {
+            lessons: { orderBy: { order: 'asc' } },
+            assignments: { orderBy: { createdAt: 'asc' } },
+          },
+        },
+      },
+    });
+    if (!source) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'Курс не знайдено' } });
+    if (source.instructorId !== request.user.sub) {
+      return reply.code(403).send({ error: { code: 'FORBIDDEN', message: 'Ви не є власником цього курсу' } });
+    }
+
+    const defaultDueAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+
+    const created = await fastify.prisma.$transaction(async (tx) => {
+      const newCourse = await tx.course.create({
+        data: {
+          title: `${source.title} (копія)`,
+          description: source.description,
+          instructorId: request.user.sub,
+          status: 'Draft',
+          creditsEcts: source.creditsEcts,
+          semester: source.semester,
+          finalControl: source.finalControl,
+          syllabusUrl: source.syllabusUrl,
+        },
+      });
+
+      for (const section of source.sections) {
+        const newSection = await tx.section.create({
+          data: {
+            courseId: newCourse.id,
+            title: section.title,
+            order: section.order,
+          },
+        });
+
+        if (section.lessons.length > 0) {
+          await tx.lesson.createMany({
+            data: section.lessons.map((l) => ({
+              sectionId: newSection.id,
+              title: l.title,
+              contentMarkdown: l.contentMarkdown,
+              releaseAt: null,
+              order: l.order,
+            })),
+          });
+        }
+
+        if (section.assignments.length > 0) {
+          await tx.assignment.createMany({
+            data: section.assignments.map((a) => ({
+              sectionId: newSection.id,
+              title: a.title,
+              descriptionMarkdown: a.descriptionMarkdown,
+              dueAt: defaultDueAt,
+              releaseAt: null,
+              maxScore: a.maxScore,
+            })),
+          });
+        }
+      }
+
+      return newCourse.id;
+    });
+
+    const full = await fastify.prisma.course.findUnique({
+      where: { id: created },
+      include: {
+        instructor: { select: { id: true, fullName: true, email: true, avatarUrl: true } },
+        _count: { select: { enrollments: true, sections: true } },
+        sections: {
+          orderBy: { order: 'asc' },
+          include: {
+            lessons: { orderBy: { order: 'asc' } },
+            assignments: { orderBy: { createdAt: 'asc' } },
+          },
+        },
+      },
+    });
+    return reply.code(201).send(serializeCourse(full));
+  });
+
   // DELETE /api/v1/courses/:id
   fastify.delete('/:id', {
     preHandler: [fastify.requireRole('Instructor')],
